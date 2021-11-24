@@ -1,18 +1,15 @@
-#create main loop
-#create socket
-#create connection
-#create thread
-#create recieve and send
-CLIENT_IP="192.168.1.0"
-SERVER_IP="192.168.1.1"
+import yaml
+import socket
 
 def main():
     #create main loop
     while True:
         #create socket
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s2 = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         #create connection
-        s.bind(('', 8080))
+        s.bind((cfg["EMULATOR"]["IP"], cfg["EMULATOR"]["T_PORT"]))
+        s2.bind((cfg["EMULATOR"]["IP"], cfg["EMULATOR"]["R_PORT"]))
         #create thread
         s.listen(1)
         #create recieve and send
@@ -20,14 +17,14 @@ def main():
         print('Connected by', addr)
         while True:
             #send packet based off address
-            if addr[0] == CLIENT_IP:
+            if addr[0] == cfg["RECEIVER"]["IP"]:
                 data = conn.recv(1024)
                 if not data:
                     break
                 print(data)
                 conn.send(data)
             #recieve packet based off address
-            elif addr[0] == SERVER_IP:
+            elif addr[0] == cfg["TRANSMITTER"]["IP"]:
                 data = conn.recv(1024)
                 if not data:
                     break
@@ -36,4 +33,6 @@ def main():
         conn.close()
 
 if __name__ == '__main__':
+    with open('config.yml', 'r') as ymlfile:
+        cfg = yaml.load(ymlfile)
     main()
