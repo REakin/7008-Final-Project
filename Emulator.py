@@ -30,7 +30,7 @@ def main():
                     break
                 s.sendto(b"ACK"+b"0",("127.0.0.1",5005))
 
-
+                
             #recieve packet based off address
             # elif addr[0] == cfg["TRANSMITTER"]["IP"]:
             #     data = conn.recv(1024)
