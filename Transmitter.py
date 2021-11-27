@@ -12,7 +12,7 @@ def main():
         s.bind(("127.0.0.1", 5005))
         f = open("Blanchette.txt", 'rb')
         data = f.read()
-        windowsize = 2
+        windowsize = 1
         seqnum = 0 #the offset number
         #close file
         f.close()
@@ -20,7 +20,7 @@ def main():
         #start three way handshake
         #send SYN
         print("starting three way handshake")
-        s.sendto(b"1000000000000000000000000000", ("127.0.0.1", 7005))
+        s.sendto(b"1100000000000000000000000000000"+b'Blanchette1.txt', ("127.0.0.1", 6005))
         #recieve ACK
         s.settimeout(3)
         try:
@@ -38,7 +38,6 @@ def main():
         while True:
             time.sleep(0.5)
             #send packet
-            #increase window size by two times the current each time until a maximum of 1024
             _seqnum = '{0:016b}'.format(int(seqnum))
             _windowsize = '{0:012b}'.format(int(windowsize))
 
@@ -50,8 +49,8 @@ def main():
                 packetdata = "1"+"01"+_seqnum+_windowsize
                 packetdata = packetdata.encode()
                 packetdata += data[int(seqnum):int(seqnum+windowsize)]
-            # print(packetdata)
-            s.sendto(packetdata,("127.0.0.1",7005))
+            print(packetdata)
+            s.sendto(packetdata,("127.0.0.1",6005))
             #set a timeout for the packet if a ack is not recieved
             s.settimeout(3)
             try:
@@ -61,21 +60,22 @@ def main():
                 _switch = ack[0]#1
                 _flag = ack[1:3]#2
                 _seqnum = ack[3:19]#16
-                _windowsize = ack[20:32]#12
-                _data = ack[33:]#payload
+                _windowsize = ack[19:31]#12
+                _data = ack[31:]#payload
 
-                #if the ack is correct, continue                
+                #if the ACK packet has flag set to EOF end connection
+                if _switch == '0' and _flag == "11":
+                    print("EOF ACK'ed")
+                    print("closing connection")
+                    s.close()
+                    exit(0)
+                #if the ack is correct, continue
                 if _switch == '0' and _seqnum == '{0:016b}'.format(int(seqnum)):
                     print("ACK recieved")
                     seqnum = seqnum + windowsize
                     if windowsize < 1024:
                         windowsize = windowsize * 2
                     continue
-                if _switch == '0' and _flag == "11":
-                    print("EOF ACK'ed")
-                    print("closing connection")
-                    s.close()
-                    exit(0)
                 #if the ack is incorrect, resend the packet
                 else:
                     print("Incorrect ACK recived resending")

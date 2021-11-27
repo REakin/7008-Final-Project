@@ -3,6 +3,8 @@ import socket
 
 def main():
     writing = ""
+    filename = ""
+    f = None
     #create main loop
     while True:
         #create socket
@@ -11,7 +13,6 @@ def main():
         #s.bind((cfg["RECEIVER"][0]["IP"], cfg["RECEIVER"][0]["PORT"]))
         s.bind(('127.0.0.1', 7005))
         #open file
-        f = None
         while True:
             #recive packet
             data = s.recv(2000).decode()
@@ -22,27 +23,30 @@ def main():
                 _switch = data[0]#1
                 _flag = data[1:3]#2
                 _seqnum = data[3:19]#16
-                _windowsize = data[20:32]#12
-                _data = data[33:]#payload
+                _windowsize = data[19:31]#12
+                _data = data[31:]#payload
                 if _switch == '1': # SYN packet
                     print("SYN packet received")
                     if _flag == '11': #flag for EOF
                         print("EOF flag")
-                        f = open("output.txt", "w")
+                        f = open(filename, "w")
                         f.write(writing)
                         f.close()
-                        break
-                    if _flag == '10': #flag for filename
+                        #set flag to ACK EOF
+                        _flag = '11'
+                    elif _flag == '10': #flag for filename
                         print("Filename flag")
-                        f = open(_data, "w")
-                    if _flag == '01': #flag for data
+                        open(_data, "w")
+                        filename = _data
+                    elif _flag == '01': #flag for data
                         print("Data flag")
                         #convert seqnum from binary to decimal
                         offset = int(_seqnum, 2)
-                        print(offset)
-                        writing = writing[:offset]+_data
+                        print(_data)
+                        writing = writing[:offset+1]+_data
+                        _flag = '00'
                     # send ACK=0 back
-                    s.sendto(b'0' + b'00' + _seqnum.encode() + _windowsize.encode(), ('127.0.0.1', 5005))
+                    s.sendto(b'0' + _flag.encode() + _seqnum.encode() + _windowsize.encode(), ('127.0.0.1', 6005))
 
 if (__name__ == '__main__'):
     with open("config.json", "r") as read_file:
